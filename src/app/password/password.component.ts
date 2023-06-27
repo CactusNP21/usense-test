@@ -1,6 +1,5 @@
-import {Component, computed, effect, OnInit, Signal, signal, WritableSignal} from '@angular/core';
+import {Component, computed, effect, Signal, signal, WritableSignal} from '@angular/core';
 import {CommonModule} from '@angular/common';
-import {Colors, Keys, Levels} from "../shared/models";
 
 @Component({
   selector: 'app-password',
@@ -37,7 +36,7 @@ export class PasswordComponent {
   sectionColors: WritableSignal<{ field1: string; field3: string; field2: string }> = signal(this.levels[0]);
 
   passwordLevel: Signal<number> = computed(() => {
-    let level = 0;
+    let level;
     const val = this.password();
     if (val.length >= 8) {
       level = 1;
