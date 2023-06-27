@@ -1,5 +1,15 @@
-import {ChangeDetectionStrategy, Component, computed, effect, Signal, signal, WritableSignal} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  EffectRef,
+  Signal,
+  signal,
+  WritableSignal
+} from '@angular/core';
 import {CommonModule} from '@angular/common';
+import {Colors, Keys, Levels, PasswordCheckList, PasswordStrength} from "../shared/models";
 
 @Component({
   selector: 'app-password',
@@ -11,15 +21,15 @@ import {CommonModule} from '@angular/common';
 })
 
 export class PasswordComponent {
-  passwordCheckList = {
+  passwordCheckList: PasswordCheckList = {
     long: false,
-    digits: false,
+    digit: false,
     letter: false,
-    specChar: false
+    symbol: false
   }
-  passwordCheckListSignal = signal(this.passwordCheckList)
+  passwordCheckListSignal: WritableSignal<PasswordCheckList> = signal(this.passwordCheckList)
 
-  levels = {
+  levels: Levels = {
     0: {
       field1: "grey", field2: "grey", field3: "grey"
     },
@@ -39,12 +49,12 @@ export class PasswordComponent {
 
   password: WritableSignal<string> = signal('');
 
-  sectionColors: WritableSignal<{ field1: string; field3: string; field2: string }> = signal(this.levels[0]);
+  sectionColors: WritableSignal<Record<Keys, Colors>> = signal(this.levels[0]);
 
   passwordLevel: Signal<number> = computed(() => {
     let level;
     const pass = this.password();
-    const newLevels = this.newLevel(pass);
+    const newLevels = this.calculateStrength(pass);
     if (pass.length >= 8) {
       this.passwordCheckList.long = true;
       level = 1;
@@ -56,11 +66,11 @@ export class PasswordComponent {
     return level
   })
 
-  updateEffect = effect(() => {
+  _updateEffect: EffectRef = effect(() => {
     this.sectionColors.set(this.levels[this.passwordLevel() as keyof typeof this.levels]);
   }, {allowSignalWrites: true})
 
-  passwordStrength = computed(() => {
+  passwordStrength: Signal<PasswordStrength> = computed(() => {
     switch (this.passwordLevel()) {
       case 2: {
         return 'Easy'
@@ -72,40 +82,39 @@ export class PasswordComponent {
         return "Strong"
       }
       default : {
-        return "Need more symbols"
+        return "Not enough symbols"
       }
     }
   })
 
-  newLevel(val: string) {
-    return +this.isContainingDigits(val) +
-    +this.isContainingLetters(val) +
-    +this.isContainingSpecialCharacters(val);
-
+  calculateStrength(val: string): number {
+    return +this.isContainingDigit(val) +
+      +this.isContainingLetter(val) +
+      +this.isContainingSymbol(val);
   }
 
-  isContainingSpecialCharacters(pass: string) {
+  isContainingSymbol(pass: string): boolean {
     const specialCharacters = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/g;
     const match = !!pass.match(specialCharacters)
-    this.passwordCheckList.specChar = match;
+    this.passwordCheckList.symbol = match;
     return match;
   }
 
-  isContainingDigits(pass: string) {
+  isContainingDigit(pass: string): boolean {
     const digitsRE = /[0-9]/g
     const match = !!pass.match(digitsRE)
-    this.passwordCheckList.digits = match;
+    this.passwordCheckList.digit = match;
     return match;
   }
 
-  isContainingLetters(pass: string) {
+  isContainingLetter(pass: string): boolean {
     const lettersRE = /[A-Za-z]/g
     const match = !!pass.match(lettersRE)
     this.passwordCheckList.letter = match;
     return match;
   }
 
-  btnText = signal('Show')
+  btnText: WritableSignal<"Show" | "Hide"> = signal('Show')
 
   changeVisibility(input: HTMLInputElement) {
     input.type = input.type === 'password' ? 'text' : 'password'
