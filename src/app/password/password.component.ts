@@ -10,9 +10,6 @@ import {CommonModule} from '@angular/common';
 })
 
 export class PasswordComponent {
-  specialCharacters = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/g
-  numberRE = /[0-9]/g
-
   levels = {
     0: {
       field1: "grey", field2: "grey", field3: "grey"
@@ -53,9 +50,6 @@ export class PasswordComponent {
 
   passwordStrength = computed(() => {
     switch (this.passwordLevel()) {
-      case 1: {
-        return 'Need more signs'
-      }
       case 2: {
         return 'Easy'
       }
@@ -76,15 +70,23 @@ export class PasswordComponent {
   }
 
   isContainingSpecialCharacters(pass: string) {
-    return pass.match(this.specialCharacters) ? 1 : 0;
+    const specialCharacters = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/g;
+    return pass.match(specialCharacters) ? 1 : 0;
   }
 
   isContainingNumbers(pass: string) {
-    return pass.match(this.numberRE) ? 1 : 0;
+    const numberRE = /[0-9]/g
+    return pass.match(numberRE) ? 1 : 0;
   }
 
   isContainingLetters(pass: string) {
     const lettersRE = /[A-Za-z]/g
     return pass.match(lettersRE) ? 1 : 0;
+  }
+
+  btnText = signal('Show')
+  changeVisibility(input: HTMLInputElement) {
+    input.type = input.type === 'password' ? 'text' : 'password'
+    this.btnText.set(this.btnText() === 'Show' ? 'Hide' : 'Show')
   }
 }
