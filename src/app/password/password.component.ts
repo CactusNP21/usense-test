@@ -1,4 +1,4 @@
-import {Component, computed, effect, Signal, signal, WritableSignal} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, effect, Signal, signal, WritableSignal} from '@angular/core';
 import {CommonModule} from '@angular/common';
 
 @Component({
@@ -6,10 +6,19 @@ import {CommonModule} from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './password.component.html',
-  styleUrls: ['./password.component.css']
+  styleUrls: ['./password.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 
 export class PasswordComponent {
+  passwordCheckList = {
+    long: false,
+    digits: false,
+    letter: false,
+    specChar: false
+  }
+  passwordCheckListSignal = signal(this.passwordCheckList)
+
   levels = {
     0: {
       field1: "grey", field2: "grey", field3: "grey"
@@ -34,18 +43,21 @@ export class PasswordComponent {
 
   passwordLevel: Signal<number> = computed(() => {
     let level;
-    const val = this.password();
-    if (val.length >= 8) {
+    const pass = this.password();
+    const newLevels = this.newLevel(pass);
+    if (pass.length >= 8) {
+      this.passwordCheckList.long = true;
       level = 1;
-      level += this.levelUp(val);
+      level += newLevels;
     } else {
-      level = val.length > 0 ? 1 : 0;
+      this.passwordCheckList.long = false;
+      level = pass.length > 0 ? 1 : 0;
     }
     return level
   })
 
   updateEffect = effect(() => {
-    this.sectionColors.set(this.levels[this.passwordLevel() as keyof typeof this.levels])
+    this.sectionColors.set(this.levels[this.passwordLevel() as keyof typeof this.levels]);
   }, {allowSignalWrites: true})
 
   passwordStrength = computed(() => {
@@ -60,31 +72,41 @@ export class PasswordComponent {
         return "Strong"
       }
       default : {
-        return "Need more signs"
+        return "Need more symbols"
       }
     }
   })
 
-  levelUp(val: string) {
-    return this.isContainingLetters(val) + this.isContainingSpecialCharacters(val) + this.isContainingNumbers(val)
+  newLevel(val: string) {
+    return +this.isContainingDigits(val) +
+    +this.isContainingLetters(val) +
+    +this.isContainingSpecialCharacters(val);
+
   }
 
   isContainingSpecialCharacters(pass: string) {
     const specialCharacters = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/g;
-    return pass.match(specialCharacters) ? 1 : 0;
+    const match = !!pass.match(specialCharacters)
+    this.passwordCheckList.specChar = match;
+    return match;
   }
 
-  isContainingNumbers(pass: string) {
-    const numberRE = /[0-9]/g
-    return pass.match(numberRE) ? 1 : 0;
+  isContainingDigits(pass: string) {
+    const digitsRE = /[0-9]/g
+    const match = !!pass.match(digitsRE)
+    this.passwordCheckList.digits = match;
+    return match;
   }
 
   isContainingLetters(pass: string) {
     const lettersRE = /[A-Za-z]/g
-    return pass.match(lettersRE) ? 1 : 0;
+    const match = !!pass.match(lettersRE)
+    this.passwordCheckList.letter = match;
+    return match;
   }
 
   btnText = signal('Show')
+
   changeVisibility(input: HTMLInputElement) {
     input.type = input.type === 'password' ? 'text' : 'password'
     this.btnText.set(this.btnText() === 'Show' ? 'Hide' : 'Show')
